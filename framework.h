@@ -110,7 +110,7 @@ public:
 	DirectX::XMFLOAT3 rotation{ 0, 0, 0 };
 	DirectX::XMFLOAT4 material_color{ 1 ,1, 1, 1 };
 
-	std::unique_ptr<static_mesh> dummy_static_mesh;
+	std::vector<std::unique_ptr<static_mesh>> dummy_static_meshs;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> mesh_vertex_shader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> mesh_input_layout;
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> mesh_pixel_shader;

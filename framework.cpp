@@ -65,6 +65,7 @@ bool framework::initialize()
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 
 		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
+
 		depth_stencil_view_desc.Format = texture2d_desc.Format;
 		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
 		depth_stencil_view_desc.Texture2D.MipSlice = 0;
@@ -93,7 +94,7 @@ bool framework::initialize()
 	{
 		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
 		depth_stencil_desc.DepthEnable = TRUE;
-		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 		hr = device->CreateDepthStencilState(&depth_stencil_desc, depth_stencil_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
@@ -173,11 +174,13 @@ bool framework::initialize()
 	// 描画オブジェクトの読み込み
 	{
 		//dummy_static_mesh = std::make_unique<static_mesh>(device.Get(), L".\\resources\\ball\\ball.obj", true);
-		dummy_static_mesh = std::make_unique<static_mesh>(device.Get(), L".\\resources\\globe\\globe.obj", true);
-		scaling.x = 0.01f;
-		scaling.y = 0.01f;
-		scaling.z = 0.01f;
 		//dummy_sprite = std::make_unique<sprite>(device.Get(), L".\\resources\\chip_win.png");
+		dummy_static_meshs.push_back(std::make_unique<static_mesh>(device.Get(),
+			L".\\resources\\ball\\ball.obj", true));
+
+		dummy_static_meshs.push_back(std::make_unique<static_mesh>(device.Get(),
+			L".\\resources\\plane\\plane.obj", true));
+		
 		load_texture_from_file(device.Get(), L".\\resources\\mask\\dissolve_animation.png",
 			mask_texture.GetAddressOf(), &mask_texture2dDesc);
 
@@ -473,29 +476,38 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 
 	// static_mesh描画
-	if(dummy_static_mesh)
+	immediate_context->IASetInputLayout(mesh_input_layout.Get());
+	immediate_context->VSSetShader(mesh_vertex_shader.Get(), nullptr, 0);
+	immediate_context->PSSetShader(mesh_pixel_shader.Get(), nullptr, 0);
+	immediate_context->PSSetSamplers(0, 1, sampler_state.GetAddressOf());
+	
+
+	//t0,t1はstatic_meshのrender関数側で設定されるのでt2から設定する
+	immediate_context->PSSetShaderResources(2, 1, ramp_texture.GetAddressOf());
+	immediate_context->PSSetSamplers(2, 1, ramp_sampler_state.GetAddressOf());
+
+	immediate_context->PSSetShaderResources(3, 1, environment_texture.GetAddressOf());
+
+	DirectX::XMMATRIX S, R, T;
+	DirectX::XMFLOAT4X4 world;
+	//モデルを大量に描画
+	for (int x = -10; x < 10; x++)
 	{
-		immediate_context->IASetInputLayout(mesh_input_layout.Get());
-		immediate_context->VSSetShader(mesh_vertex_shader.Get(), nullptr, 0);
-		immediate_context->PSSetShader(mesh_pixel_shader.Get(), nullptr, 0);
-		immediate_context->PSSetSamplers(0, 1, sampler_state.GetAddressOf());
-		
-
-		//t0,t1はstatic_meshのrender関数側で設定されるのでt2から設定する
-		immediate_context->PSSetShaderResources(2, 1, ramp_texture.GetAddressOf());
-		immediate_context->PSSetSamplers(2, 1, ramp_sampler_state.GetAddressOf());
-
-		immediate_context->PSSetShaderResources(3, 1, environment_texture.GetAddressOf());
-
-		DirectX::XMMATRIX S{ DirectX::XMMatrixScaling(scaling.x, scaling.y, scaling.z) };
-		DirectX::XMMATRIX R{ DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z) };
-		DirectX::XMMATRIX T{ DirectX::XMMatrixTranslation(translation.x, translation.y, translation.z) };
-		DirectX::XMFLOAT4X4 world;
-		DirectX::XMStoreFloat4x4(&world, S * R * T);
-		dummy_static_mesh->render(immediate_context.Get(), world, material_color);
-
-
+		for (int z = 0; z < 75; z++)
+		{
+			S = DirectX::XMMatrixScaling(0.01f * scaling.x, 0.01f * scaling.y, 0.01f * scaling.z);
+			R = DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+			T = DirectX::XMMatrixTranslation(translation.x + (static_cast<float>(x) * 3),
+				translation.y,
+				translation.z + (static_cast<float>(z) * 3));
+			DirectX::XMStoreFloat4x4(&world, S* R* T);
+			dummy_static_meshs[0]->render(immediate_context.Get(), world, material_color);
+		}
 	}
+
+	//平面モデルを表示
+
+
 	// sprite描画
 	if(dummy_sprite)
 	{
