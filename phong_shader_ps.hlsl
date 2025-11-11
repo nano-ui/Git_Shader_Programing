@@ -32,6 +32,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     float4 color = float4(diffuse_color.rgb * (ambient + directional_diffuse), diffuse_color.a);
     color.rgb += directional_specular;
     color.rgb += rim_color;
+    color = CalFog(color, fog_color, fog_range.xy, length(pin.world_position.xyz - camera_position.xyz));
     
     return color;
 }

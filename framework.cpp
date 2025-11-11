@@ -521,6 +521,11 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	}
 
 	//•½–Êƒ‚ƒfƒ‹‚ð•\Ž¦
+	S = DirectX::XMMatrixScaling(100 * scaling.x, 100 * scaling.y, 100 * scaling.z);
+	R = DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+	T = DirectX::XMMatrixTranslation(translation.x, translation.y - 1, translation.z);
+	DirectX::XMStoreFloat4x4(&world, S* R* T);
+	dummy_static_meshs[1]->render(immediate_context.Get(), world, material_color);
 
 
 	// sprite•`‰æ

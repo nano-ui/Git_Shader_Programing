@@ -45,7 +45,8 @@ cbuffer HEMISPHERE_LIGHT_CONSTNT_BUFFER : register(b4)
 
 cbuffer FOG_CONSTANT_BUFFER : register(b5)
 {
-    
+    float4 fog_color;//霧の色
+    float4 fog_range;//フォグの距離
 }
 
 #include "shading_functions.hlsli"
