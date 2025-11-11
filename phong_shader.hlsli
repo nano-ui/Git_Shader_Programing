@@ -43,4 +43,9 @@ cbuffer HEMISPHERE_LIGHT_CONSTNT_BUFFER : register(b4)
     float4 hemisphere_weight;    //‹ó‚Æ’n–Ê‚Ì‰e‹¿“x
 };
 
+cbuffer FOG_CONSTANT_BUFFER : register(b5)
+{
+    
+}
+
 #include "shading_functions.hlsli"

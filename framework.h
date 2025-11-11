@@ -43,6 +43,16 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_state;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_state;
 
+	//GPUに送るフォグ用構造体
+	struct fog_constants
+	{
+		DirectX::XMFLOAT4 fog_color;//霧の色
+		DirectX::XMFLOAT4 fog_range;//フォグの距離
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> fog_constant_buffer;//フォグの情報をGPUに送る定数バッファ
+	DirectX::XMFLOAT4 fog_color{ 0.2f,0.2f,0.2f,1.0f };		//霧の色
+	DirectX::XMFLOAT4 fog_range{ 0.1f,100.0f,0.0f,0.0f };	//フォグの距離
+
 	//GPUに送る半球ライト用変数
 	struct hemisphere_light_constants
 	{
