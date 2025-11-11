@@ -34,3 +34,13 @@ cbuffer LIGHT_CONSTANT_BUFFER : register(b2)
     float4 directional_light_direction; //平行光の方向
     float4 directional_light_color; //平行光の色
 };
+
+//半球ライト
+cbuffer HEMISPHERE_LIGHT_CONSTNT_BUFFER : register(b4)
+{
+    float4 sky_color;           //空の色
+    float4 groud_color;          //地面の色
+    float4 hemisphere_weight;    //空と地面の影響度
+};
+
+#include "shading_functions.hlsli"

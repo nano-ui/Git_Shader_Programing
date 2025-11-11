@@ -164,6 +164,11 @@ bool framework::initialize()
 			hr = device->CreateBuffer(&buffer_desc, nullptr, environment_constant_buffer.GetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
+		{
+			buffer_desc.ByteWidth = sizeof(hemisphere_light_constants);
+			hr = device->CreateBuffer(&buffer_desc, nullptr, hemisphere_light_constant_buffer.GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		}
 	}
 	// 描画オブジェクトの読み込み
 	{
@@ -307,6 +312,11 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	ImGui::ColorEdit3("directional_light_color", &directional_light_color.x);
 	ImGui::Separator();
 	ImGui::SliderFloat("environment_value", &environment_value, 0.0f, +1.0f);
+	ImGui::Separator();
+	ImGui::ColorEdit3("sky_color", &sky_color.x);
+	ImGui::ColorEdit3("ground_color", &ground_color.x);
+	ImGui::SliderFloat("hemisphere_weight", &hemisphere_weight, 0.0f, 1.0f);
+
 
 	ImGui::End();
 #endif
@@ -464,6 +474,15 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->UpdateSubresource(environment_constant_buffer.Get(), 0, 0, &environments, 0, 0);
 		immediate_context->VSSetConstantBuffers(3, 1, environment_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(3, 1, environment_constant_buffer.GetAddressOf());
+	
+		hemisphere_light_constants hemisphere_lights{};
+		hemisphere_lights.sky_color = sky_color;
+		hemisphere_lights.ground_color = ground_color;
+		hemisphere_lights.hemisphere_weight.x = hemisphere_weight;
+		immediate_context->UpdateSubresource(hemisphere_light_constant_buffer.Get(), 0, 0, &hemisphere_lights, 0, 0);
+		immediate_context->VSSetConstantBuffers(4, 1, hemisphere_light_constant_buffer.GetAddressOf());
+		immediate_context->PSSetConstantBuffers(4, 1, hemisphere_light_constant_buffer.GetAddressOf());
+
 	}
 
 	// static_mesh描画

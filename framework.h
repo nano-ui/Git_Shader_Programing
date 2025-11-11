@@ -43,6 +43,19 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11BlendState> blend_state;
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer_state;
 
+	//GPUに送る半球ライト用変数
+	struct hemisphere_light_constants
+	{
+		DirectX::XMFLOAT4 sky_color;		//空の色
+		DirectX::XMFLOAT4 ground_color;		//地面の色
+		DirectX::XMFLOAT4 hemisphere_weight;//空と地面の影響度
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> hemisphere_light_constant_buffer;//半球ライト用の定数バッファ
+	DirectX::XMFLOAT4 sky_color{ 1.0f,0.0f,0.0f,1.0f };		//空の色
+	DirectX::XMFLOAT4 ground_color{ 0.0f,0.0f,1.0f,1.0f };	//地面の色
+	float hemisphere_weight{ 0.0f };						//空と地面の影響度
+
+
 	//ライティング情報をGPUへ送る
 	struct light_constants
 	{

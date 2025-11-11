@@ -20,7 +20,7 @@ float4 main(VS_OUT pin) : SV_TARGET
     N = normalize(mul(N * 2.0f - 1.0f, mat));
     
     float3 ambient = ambient_color.rgb * ka.rgb; //ŠÂ‹«Œõ
-    
+    ambient += CalcHemiSphereLight(N, float3(0, 1, 0), sky_color.rgb, groud_color.rgb, hemisphere_weight);
     
     //float3 directional_diffuse = CalcLambert(N, L, directional_light_color.rgb, kd.rgb);
     float3 directional_diffuse = ClacHalfLambert(N, L, directional_light_color.rgb, kd.rgb);

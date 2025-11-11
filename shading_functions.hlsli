@@ -1,3 +1,6 @@
+#ifndef SHADING_FUNCTIONS_INCLUDED
+#define SHADING_FUNCTIONS_INCLUDED
+
 //--------------------------------------------
 //	ランバート拡散反射計算関数
 //--------------------------------------------
@@ -143,3 +146,19 @@ float3 CalcSphereEnvironment(Texture2D tex,SamplerState samp,in float3 color,flo
     */
     return lerp(color.rgb, tex.Sample(samp, texcoord).rgb, value);
 }
+
+//半球ライティング
+/*
+normal             :法線(正規化済み)
+up                 :上方向(片方)
+sky_color          :空の色
+ground_color       :地面の色
+hemisphere_weight  :空と地面の影響度
+*/
+float3 CalcHemiSphereLight(float3 normal,float3 up,float3 sky_color,float3 ground_color,float4 hemisphere_weight)
+{
+    float factor = dot(normal, up) * 0.5f + 0.5f;
+    return lerp(ground_color, sky_color, factor) * hemisphere_weight.x;
+}
+
+#endif
