@@ -448,19 +448,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->VSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
 	
-		scroll_constants scroll{};
-		scroll.scroll_direction.x = scroll_direction.x;
-		scroll.scroll_direction.y = scroll_direction.y;
-		immediate_context->UpdateSubresource(scroll_constants_buffer.Get(), 0, 0, &scroll, 0, 0);
-		immediate_context->VSSetConstantBuffers(2, 1, scroll_constants_buffer.GetAddressOf());
-		immediate_context->PSSetConstantBuffers(2, 1, scroll_constants_buffer.GetAddressOf());
-	
-		dissolve_constants dissolve{};
-		dissolve.parameters.x = dissolve_value;//ディゾルブ進行度をセット
-		immediate_context->UpdateSubresource(dissolve_constant_buffer.Get(), 0, 0, &dissolve, 0, 0);//シェーダ用データ更新
-		immediate_context->VSSetConstantBuffers(3, 1, dissolve_constant_buffer.GetAddressOf());//頂点シェーダに定数バッファをセット
-		immediate_context->PSSetConstantBuffers(3, 1, dissolve_constant_buffer.GetAddressOf());//ピクセルシェーダにもセット
-	
 		light_constants lights{};
 		lights.ambient_color = ambient_color;
 		lights.directional_light_direction = directional_light_direction;
@@ -512,6 +499,19 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	// sprite描画
 	if(dummy_sprite)
 	{
+		scroll_constants scroll{};
+		scroll.scroll_direction.x = scroll_direction.x;
+		scroll.scroll_direction.y = scroll_direction.y;
+		immediate_context->UpdateSubresource(scroll_constants_buffer.Get(), 0, 0, &scroll, 0, 0);
+		immediate_context->VSSetConstantBuffers(2, 1, scroll_constants_buffer.GetAddressOf());
+		immediate_context->PSSetConstantBuffers(2, 1, scroll_constants_buffer.GetAddressOf());
+
+		dissolve_constants dissolve{};
+		dissolve.parameters.x = dissolve_value;//ディゾルブ進行度をセット
+		immediate_context->UpdateSubresource(dissolve_constant_buffer.Get(), 0, 0, &dissolve, 0, 0);//シェーダ用データ更新
+		immediate_context->VSSetConstantBuffers(3, 1, dissolve_constant_buffer.GetAddressOf());//頂点シェーダに定数バッファをセット
+		immediate_context->PSSetConstantBuffers(3, 1, dissolve_constant_buffer.GetAddressOf());//ピクセルシェーダにもセット
+
 		immediate_context->IASetInputLayout(sprite_input_layout.Get());
 		immediate_context->VSSetShader(sprite_vertex_shader.Get(), nullptr, 0);
 		immediate_context->PSSetShader(sprite_pixel_shader.Get(), nullptr, 0);
