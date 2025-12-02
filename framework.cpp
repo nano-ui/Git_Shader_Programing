@@ -501,6 +501,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		Front = DirectX::XMVectorMultiply(Front, Distance);
 		DirectX::XMVECTOR Eye = DirectX::XMVectorSubtract(Focus, Front);
 		DirectX::XMStoreFloat3(&camera_position, Eye);
+		camera_position.x += 1.0f;
 		V = DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&camera_position),
 									  DirectX::XMLoadFloat3(&camera_focus),
 									  up);
