@@ -448,7 +448,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			POINT old_cursor_position;
 			old_cursor_position.x = cursor_position.x;
 			old_cursor_position.y = cursor_position.y;
-			cursor_position.x = (LONG)(cursor.x / static_cast<float>( SCREEN_WIDTH) * static_cast<float>(screenW));
+			cursor_position.x = (LONG)(cursor.x / static_cast<float>(SCREEN_WIDTH) * static_cast<float>(screenW));
 			cursor_position.y = (LONG)(cursor.y / static_cast<float>(SCREEN_HEIGHT) * static_cast<float>(screenH));
 
 			float moveX = (cursor_position.x - old_cursor_position.x) * 0.02f;
@@ -471,8 +471,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 			else if (::GetAsyncKeyState(VK_MBUTTON) & 0x8000)
 			{
 				V = DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&camera_position),
-											  DirectX::XMLoadFloat3(&camera_focus),
-											  up);
+					DirectX::XMLoadFloat3(&camera_focus),
+					up);
 				DirectX::XMFLOAT4X4 W;
 				DirectX::XMStoreFloat4x4(&W, DirectX::XMMatrixInverse(nullptr, V));
 				// 平行移動
@@ -522,8 +522,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		// 0番はメッシュ側で更新している
 
 		scene_constants scene{};
-		scene.options.x = cursor_position.x;
-		scene.options.y = cursor_position.y;
+		scene.options.x = static_cast<float>(cursor_position.x);
+		scene.options.y = static_cast<float>(cursor_position.y);
 		scene.options.z = timer;
 		scene.options.w = flag;
 		scene.camera_position.x = camera_position.x;
