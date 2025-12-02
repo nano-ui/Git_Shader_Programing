@@ -58,11 +58,12 @@ float4 main(VS_OUT pin) : SV_TARGET
         float attenuation = attenuate_length * attenuate_length;
         LP /= len;
         float3 spot_direction = normalize(spot_light[j].direction.xyz);
-        float angle = dot(spot_direction, -LP);
+        float angle = dot(spot_direction, LP);
         float area = spot_light[j].inner_corn - spot_light[j].outer_corn;
         attenuation *= saturate(1.0f - (spot_light[j].inner_corn - angle) / area);
         spot_diffuse += CalcLambert(N, LP, spot_light[j].color.rgb, kd.rgb) * attenuation;
         spot_specular += CalcPhongSpecular(N, LP, E, spot_light[j].color.rgb, ks.rgb) * attenuation;
+
     }
       
     //êFÇÃçáê¨

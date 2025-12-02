@@ -1,4 +1,5 @@
 #include "lights.hlsli"
+#include "shading_functions.hlsli"
 
 //頂点シェーダーの出力構造
 struct VS_OUT
@@ -52,5 +53,3 @@ cbuffer FOG_CONSTANT_BUFFER : register(b5)
     float4 fog_color;//霧の色
     float4 fog_range;//フォグの距離
 }
-
-#include "shading_functions.hlsli"

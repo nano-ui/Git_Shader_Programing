@@ -316,7 +316,7 @@ bool framework::initialize()
 		spot_light[0].direction = { -1.0f,-1.0f,-1.0f,0.0f };
 		spot_light[0].range = 100.0f;
 		spot_light[0].color = { 1.0f,0.0f,0.0f,1.0f };
-		spot_light[1].position = { -15.0f,-3.0f,-15.0f,0.0f };
+		spot_light[1].position = { -15.0f,3.0f,15.0f,0.0f };
 		spot_light[1].direction = { 1.0f,-1.0f,-1.0f,0.0f };
 		spot_light[1].range = 100.0f;
 		spot_light[1].color = { 0.0f,1.0f,0.0f,1.0f };
