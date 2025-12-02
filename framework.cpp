@@ -523,18 +523,18 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		// 0番はメッシュ側で更新している
 
 		scene_constants scene{};
-		scene.options.x = static_cast<float>(cursor_position.x);
-		scene.options.y = static_cast<float>(cursor_position.y);
+		scene.options.x = cursor_position.x;
+		scene.options.y = cursor_position.y;
 		scene.options.z = timer;
 		scene.options.w = flag;
 		scene.camera_position.x = camera_position.x;
 		scene.camera_position.y = camera_position.y;
 		scene.camera_position.z = camera_position.z;
-		DirectX::XMStoreFloat4x4(&scene.view_projection, V * P);
+		DirectX::XMStoreFloat4x4(&scene.view_projection, V* P);
 		immediate_context->UpdateSubresource(scene_constant_buffer.Get(), 0, 0, &scene, 0, 0);
 		immediate_context->VSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
-	
+
 		light_constants lights{};
 		lights.ambient_color = ambient_color;
 		lights.directional_light_direction = directional_light_direction;
