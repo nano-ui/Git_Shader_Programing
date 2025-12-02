@@ -310,7 +310,7 @@ bool framework::initialize()
 		point_light[3].color = { 1.0f,1.0f,1.0f,1.0f };
 		point_light[4].range = 10.0f;
 		point_light[4].color = { 1.0f,1.0f,1.0f,1.0f };
-		ZeroMemory(&point_light[5], sizeof(point_light) * 3.0f);
+		ZeroMemory(&point_light[5], sizeof(point_lights) * 3.0f);
 
 		spot_light[0].position = { 15.0f,3.0f,15.0f,0.0f };
 		spot_light[0].direction = { -1.0f,-1.0f,-1.0f,0.0f };
@@ -328,7 +328,7 @@ bool framework::initialize()
 		spot_light[3].direction = { 1.0f,-1.0f,1.0f,0.0f };
 		spot_light[3].range = 100.0f;
 		spot_light[3].color = { 1.0f,1.0f,1.0f,1.0f };
-		ZeroMemory(&spot_light[4], sizeof(spot_light) * 4.0f);
+		ZeroMemory(&spot_light[4], sizeof(spot_lights) * 4.0f);
 	}
 
 	return true;
@@ -501,7 +501,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		Front = DirectX::XMVectorMultiply(Front, Distance);
 		DirectX::XMVECTOR Eye = DirectX::XMVectorSubtract(Focus, Front);
 		DirectX::XMStoreFloat3(&camera_position, Eye);
-		camera_position.x += 1.0f;
 		V = DirectX::XMMatrixLookAtLH(DirectX::XMLoadFloat3(&camera_position),
 									  DirectX::XMLoadFloat3(&camera_focus),
 									  up);
