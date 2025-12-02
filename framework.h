@@ -65,6 +65,23 @@ public:
 	DirectX::XMFLOAT4 ground_color{ 0.0f,0.0f,1.0f,1.0f };	//地面の色
 	float hemisphere_weight{ 0.0f };						//空と地面の影響度
 
+	struct point_lights
+	{
+		DirectX::XMFLOAT4 position{ 0.0f,0.0f,0.0f,0.0f };	//光の位置
+		DirectX::XMFLOAT4 color{ 1.0f,1.0f,1.0f,1.0f };		//光の色
+		float range{ 0 };									//光の範囲
+		DirectX::XMFLOAT3 dummy;
+	};
+	struct spot_lights
+	{
+		DirectX::XMFLOAT4 position{ 0.0f,0.0f,0.0f,0.0f };	//光の位置
+		DirectX::XMFLOAT4 direction{ 0.0f,0.0f,1.0f,0.0f };	//光の距離
+		DirectX::XMFLOAT4 color{ 1.0f,1.0f,1.0f,1.0f };		//光の色
+		float range{ 0.0f };								//光の範囲
+		float inner_corn{ 0.99f };							//光の減衰を行わない角度
+		float outer_corn{ 0.9f };							//光の減衰を行う角度
+		float dummy;
+	};
 
 	//ライティング情報をGPUへ送る
 	struct light_constants
@@ -72,13 +89,16 @@ public:
 		DirectX::XMFLOAT4 ambient_color;//環境光の色
 		DirectX::XMFLOAT4 directional_light_direction;//平行光源の向き
 		DirectX::XMFLOAT4 directional_light_color;//平行光源の色
+		point_lights point_light[8];
+		spot_lights spot_light[8];
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> light_constant_buffer;
 
 	DirectX::XMFLOAT4 ambient_color{ 0.2f,0.2f,0.2f,0.2f };
 	DirectX::XMFLOAT4 directional_light_direction{ 0.0f,-1.0f,1.0f,1.0f };
 	DirectX::XMFLOAT4 directional_light_color{ 1.0f,1.0f,1.0f,1.0f };
-
+	point_lights point_light[8];
+	spot_lights spot_light[8];
 
 	struct scroll_constants
 	{

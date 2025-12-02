@@ -26,11 +26,48 @@ float4 main(VS_OUT pin) : SV_TARGET
     float3 directional_diffuse = ClacHalfLambert(N, L, directional_light_color.rgb, kd.rgb);
    
     float3 directional_specular = CalcPhongSpecular(N, L, E, directional_light_color.rgb, ks.rgb);
+    
     float3 rim_color = CalcRimLight(N, E, L, directional_light_color.rgb);
     
+    //点光源の処理
+    float3 point_diffuse = 0.0f;
+    float3 point_specular = 0.0f;
+    for (int i = 0; i < 8;i++)
+    {
+        float3 LP = pin.world_position.xyz - point_light[i].position.xyz;
+        float len = length(LP);
+        if (len >= point_light[i].range)
+            continue;
+        float attenuate_length = saturate(1.0f - len / point_light[i].range);
+        float attenuation = attenuate_length * attenuate_length;
+        LP /= len;
+        point_diffuse += CalcLambert(N, LP, point_light[i].color.rgb, kd.rgb) * attenuation;
+        point_specular += CalcPhongSpecular(N, LP, E, point_light[i].color.rgb, ks.rgb) * attenuation;
+    }
+    
+    //スポットライトの処理
+    float3 spot_diffuse = 0.0f;
+    float3 spot_specular = 0.0f;
+    for (int j = 0; j < 8; j++)
+    {
+        float3 LP = pin.world_position.xyz - spot_light[j].position.xyz;
+        float len = length(LP);
+        if (len >= spot_light[j].range)
+            continue;
+        float attenuate_length = saturate(1.0f - len / spot_light[j].range);
+        float attenuation = attenuate_length * attenuate_length;
+        LP /= len;
+        float3 spot_direction = normalize(spot_light[j].direction.xyz);
+        float angle = dot(spot_direction, -LP);
+        float area = spot_light[j].inner_corn - spot_light[j].outer_corn;
+        attenuation *= saturate(1.0f - (spot_light[j].inner_corn - angle) / area);
+        spot_diffuse += CalcLambert(N, LP, spot_light[j].color.rgb, kd.rgb) * attenuation;
+        spot_specular += CalcPhongSpecular(N, LP, E, spot_light[j].color.rgb, ks.rgb) * attenuation;
+    }
+      
     //色の合成
-    float4 color = float4(diffuse_color.rgb * (ambient + directional_diffuse), diffuse_color.a);
-    color.rgb += directional_specular;
+    float4 color = float4(diffuse_color.rgb * (ambient + directional_diffuse + point_diffuse + spot_diffuse), diffuse_color.a);
+    color.rgb += directional_specular + spot_specular + point_specular;
     color.rgb += rim_color;
     color = CalFog(color, fog_color, fog_range.xy, length(pin.world_position.xyz - camera_position.xyz));
     

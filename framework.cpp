@@ -185,7 +185,7 @@ bool framework::initialize()
 
 		dummy_static_meshs.push_back(std::make_unique<static_mesh>(device.Get(),
 			L".\\resources\\plane\\plane.obj", true));
-		
+
 		load_texture_from_file(device.Get(), L".\\resources\\mask\\dissolve_animation.png",
 			mask_texture.GetAddressOf(), &mask_texture2dDesc);
 
@@ -290,6 +290,47 @@ bool framework::initialize()
 		}
 	}
 
+	//ポイントライト・スポットライトの初期設定
+	{
+		point_light[0].position.x = 10.0f;
+		point_light[0].position.y = 1.0f;
+		point_light[0].range = 10.0f;
+		point_light[0].color = { 1.0f,0.0f,0.0f,1.0f };
+		point_light[1].position.x = -10.0f;
+		point_light[1].position.y = 1.0f;
+		point_light[1].range = 10.0f;
+		point_light[1].color = { 0.0f,1.0f,0.0f,1.0f };
+		point_light[2].position.y = 1.0f;
+		point_light[2].position.z = 10.0f;
+		point_light[2].range = 10.0f;
+		point_light[2].color = { 0.0f,0.0f,1.0f,1.0f };
+		point_light[3].position.y = 1.0f;
+		point_light[3].position.z = -10.0f;
+		point_light[3].range = 10.0f;
+		point_light[3].color = { 1.0f,1.0f,1.0f,1.0f };
+		point_light[4].range = 10.0f;
+		point_light[4].color = { 1.0f,1.0f,1.0f,1.0f };
+		ZeroMemory(&point_light[5], sizeof(point_light) * 3.0f);
+
+		spot_light[0].position = { 15.0f,3.0f,15.0f,0.0f };
+		spot_light[0].direction = { -1.0f,-1.0f,-1.0f,0.0f };
+		spot_light[0].range = 100.0f;
+		spot_light[0].color = { 1.0f,0.0f,0.0f,1.0f };
+		spot_light[1].position = { -15.0f,-3.0f,-15.0f,0.0f };
+		spot_light[1].direction = { 1.0f,-1.0f,-1.0f,0.0f };
+		spot_light[1].range = 100.0f;
+		spot_light[1].color = { 0.0f,1.0f,0.0f,1.0f };
+		spot_light[2].position = { 15.0f,3.0f,-15.0f,0.0f };
+		spot_light[2].direction = { -1.0f,-1.0f,1.0f,0.0f };
+		spot_light[2].range = 100.0f;
+		spot_light[2].color = { 0.0f,0.0f,1.0f,0.0f };
+		spot_light[3].position = { -15.0f,3.0f,-15.0f,0.0f };
+		spot_light[3].direction = { 1.0f,-1.0f,1.0f,0.0f };
+		spot_light[3].range = 100.0f;
+		spot_light[3].color = { 1.0f,1.0f,1.0f,1.0f };
+		ZeroMemory(&spot_light[4], sizeof(spot_light) * 4.0f);
+	}
+
 	return true;
 }
 
@@ -318,6 +359,39 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	ImGui::ColorEdit3("ambient_color", &ambient_color.x);
 	ImGui::SliderFloat3("directional_light_direction", &directional_light_direction.x, -1.0f, +1.0f);
 	ImGui::ColorEdit3("directional_light_color", &directional_light_color.x);
+	if (ImGui::TreeNode("points"))
+	{
+		for (int i = 0; i < 8; i++)
+		{
+			std::string p = std::string("position") + std::to_string(i);
+			ImGui::SliderFloat3(p.c_str(), &point_light[i].position.x, -10.0f, 10.0f);
+			std::string c = std::string("color") + std::to_string(i);
+			ImGui::ColorEdit3(c.c_str(), &point_light[i].color.x);
+			std::string r = std::string("range") + std::to_string(i);
+			ImGui::SliderFloat(r.c_str(), &point_light[i].range, 0.0f, 100.0f);
+		}
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("spots"))
+	{
+		for (int i = 0; i < 8; i++)
+		{
+			std::string p = std::string("position") + std::to_string(i);
+			ImGui::SliderFloat3(p.c_str(), &spot_light[i].position.x, -10.0f, 10.0f);
+			std::string d = std::string("direction") + std::to_string(i);
+			ImGui::SliderFloat3(d.c_str(), &spot_light[i].direction.x, 0.0f, 1.0f);
+			std::string c = std::string("color") + std::to_string(i);
+			ImGui::ColorEdit3(c.c_str(), &spot_light[i].color.x);
+			std::string r = std::string("range") + std::to_string(i);
+			ImGui::SliderFloat(r.c_str(), &spot_light[i].range, 0.0f, 1000.0f);
+			std::string ic = std::string("inner") + std::to_string(i);
+			ImGui::SliderFloat(ic.c_str(), &spot_light[i].inner_corn, -1.0f, 1.0f);
+			std::string oc = std::string("outer") + std::to_string(i);
+			ImGui::SliderFloat(oc.c_str(), &spot_light[i].outer_corn, -1.0f, 1.0f);
+		}
+		ImGui::TreePop();
+	}
+
 	ImGui::Separator();
 	ImGui::SliderFloat("environment_value", &environment_value, 0.0f, +1.0f);
 	ImGui::Separator();
@@ -464,6 +538,8 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		lights.ambient_color = ambient_color;
 		lights.directional_light_direction = directional_light_direction;
 		lights.directional_light_color = directional_light_color;
+		memcpy_s(lights.point_light, sizeof(lights.point_light), point_light, sizeof(point_light));
+		memcpy_s(lights.spot_light, sizeof(lights.spot_light), spot_light, sizeof(spot_light));
 		immediate_context->UpdateSubresource(light_constant_buffer.Get(), 0, 0, &lights, 0, 0);
 		immediate_context->VSSetConstantBuffers(2, 1, light_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(2, 1, light_constant_buffer.GetAddressOf());

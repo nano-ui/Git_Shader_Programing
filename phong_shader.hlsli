@@ -1,3 +1,5 @@
+#include "lights.hlsli"
+
 //頂点シェーダーの出力構造
 struct VS_OUT
 {
@@ -33,6 +35,8 @@ cbuffer LIGHT_CONSTANT_BUFFER : register(b2)
     float4 ambient_color; //環境光
     float4 directional_light_direction; //平行光の方向
     float4 directional_light_color; //平行光の色
+    point_lights point_light[8];
+    spot_lights spot_light[8];
 };
 
 //半球ライト
