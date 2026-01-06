@@ -109,6 +109,8 @@ public:
 	};
 	Microsoft::WRL::ComPtr<ID3D11Buffer> color_filter_constant_buffer;
 	DirectX::XMFLOAT4 color_filter_parameter{ 0.0f,1.0f,1.0f,0.0f };
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> scene_render_target_view;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> scene_shader_resource_view;
 
 	struct scroll_constants
 	{

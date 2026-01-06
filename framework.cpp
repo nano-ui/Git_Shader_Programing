@@ -181,10 +181,39 @@ bool framework::initialize()
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
 	}
+
+	//シーン描画用のバッファ生成
+	{
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> color_buffer{};
+		D3D11_TEXTURE2D_DESC texture2d_desc{};
+		texture2d_desc.Width = SCREEN_WIDTH;
+		texture2d_desc.Height = SCREEN_HEIGHT;
+		texture2d_desc.MipLevels = 1;
+		texture2d_desc.ArraySize = 1;
+		texture2d_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		texture2d_desc.SampleDesc.Count = 1;
+		texture2d_desc.SampleDesc.Quality = 0;
+		texture2d_desc.Usage = D3D11_USAGE_DEFAULT;
+		texture2d_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		texture2d_desc.CPUAccessFlags = 0;
+		texture2d_desc.MiscFlags = 0;
+		hr = device->CreateTexture2D(&texture2d_desc,NULL,color_buffer.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//レンダーターゲットビュー生成
+		hr = device->CreateRenderTargetView(color_buffer.Get(), NULL, scene_render_target_view.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//シェーダーリソースビュー生成
+		hr = device->CreateShaderResourceView(color_buffer.Get(), NULL,
+			scene_shader_resource_view.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	}
 	// 描画オブジェクトの読み込み
 	{
 		//dummy_static_mesh = std::make_unique<static_mesh>(device.Get(), L".\\resources\\ball\\ball.obj", true);
-		dummy_sprite = std::make_unique<sprite>(device.Get(), L".\\resources\\chip_win.png");
+		//dummy_sprite = std::make_unique<sprite>(device.Get(), L".\\resources\\chip_win.png");
+		dummy_sprite = std::make_unique<sprite>(device.Get(), scene_shader_resource_view);
 		dummy_static_meshs.push_back(std::make_unique<static_mesh>(device.Get(),
 			L".\\resources\\ball\\ball.obj", true));
 
@@ -419,6 +448,13 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	ImGui::SliderFloat("hue_shift", &color_filter_parameter.x, 0.0f, +360.0f);
 	ImGui::SliderFloat("saturation", &color_filter_parameter.y, 0.0f, +2.0f);
 	ImGui::SliderFloat("brightness", &color_filter_parameter.z, 0.0f, +2.0f);
+	ImGui::Separator();
+	if (ImGui::TreeNode("texture"))
+	{
+		ImGui::Text("scene_texture");
+		ImGui::Image(scene_shader_resource_view.Get(), { 256,144 }, { 0,0 }, { 1,1 }, { 1,1,1,1 });
+		ImGui::TreePop();
+	}
 
 
 	ImGui::End();
@@ -430,9 +466,13 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 
 	// レンダーターゲット等の設定とクリア
 	FLOAT color[]{ 0.2f, 0.2f, 0.2f, 1.0f };
-	immediate_context->ClearRenderTargetView(render_target_view.Get(), color);
-	immediate_context->ClearDepthStencilView(depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	immediate_context->OMSetRenderTargets(1, render_target_view.GetAddressOf(), depth_stencil_view.Get());
+	//immediate_context->ClearRenderTargetView(render_target_view.Get(), color);
+	//immediate_context->ClearDepthStencilView(depth_stencil_view.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	//immediate_context->OMSetRenderTargets(1, render_target_view.GetAddressOf(), depth_stencil_view.Get());
+	immediate_context->ClearRenderTargetView(scene_render_target_view.Get(), color);
+	immediate_context->ClearDepthStencilView(depth_stencil_view.Get(), D3D11_CLEAR_DEPTH |
+		D3D11_CLEAR_STENCIL, 1.0f, 0);
+	immediate_context->OMSetRenderTargets(1, scene_render_target_view.GetAddressOf(), depth_stencil_view.Get());
 
 	// ビューポートの設定
 	D3D11_VIEWPORT viewport{};
@@ -581,14 +621,6 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->UpdateSubresource(fog_constant_buffer.Get(), 0, 0, &fogs, 0, 0);
 		immediate_context->VSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
-
-		color_filter filter{};
-		filter.hue_shift = color_filter_parameter.x;
-		filter.saturation = color_filter_parameter.y;
-		filter.brightness = color_filter_parameter.z;
-		immediate_context->UpdateSubresource(color_filter_constant_buffer.Get(), 0, 0, &filter, 0, 0);
-		immediate_context->VSSetConstantBuffers(4, 1, color_filter_constant_buffer.GetAddressOf());
-		immediate_context->PSSetConstantBuffers(4, 1, color_filter_constant_buffer.GetAddressOf());
 	}
 
 	// static_mesh描画
@@ -607,9 +639,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	DirectX::XMMATRIX S, R, T;
 	DirectX::XMFLOAT4X4 world;
 	//モデルを大量に描画
-	for (int x = -5; x < 5; x++)
+	for (int x = -10; x < 10; x++)
 	{
-		for (int z = 0; z < 50; z++)
+		for (int z = 0; z < 75; z++)
 		{
 			S = DirectX::XMMatrixScaling(0.01f * scaling.x, 0.01f * scaling.y, 0.01f * scaling.z);
 			R = DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
@@ -628,6 +660,11 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	DirectX::XMStoreFloat4x4(&world, S* R* T);
 	dummy_static_meshs[1]->render(immediate_context.Get(), world, material_color);
 
+	//バックバッファに描画先を戻して描画する
+	immediate_context->ClearRenderTargetView(render_target_view.Get(), color);
+	immediate_context->ClearDepthStencilView(depth_stencil_view.Get(), D3D11_CLEAR_DEPTH |
+		D3D11_CLEAR_STENCIL, 1.0f, 0);
+	immediate_context->OMSetRenderTargets(1, render_target_view.GetAddressOf(), depth_stencil_view.Get());
 
 	// sprite描画
 	if(dummy_sprite)
@@ -645,12 +682,20 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->VSSetConstantBuffers(3, 1, dissolve_constant_buffer.GetAddressOf());//頂点シェーダに定数バッファをセット
 		immediate_context->PSSetConstantBuffers(3, 1, dissolve_constant_buffer.GetAddressOf());//ピクセルシェーダにもセット
 
+		color_filter filter{};
+		filter.hue_shift = color_filter_parameter.x;
+		filter.saturation = color_filter_parameter.y;
+		filter.brightness = color_filter_parameter.z;
+		immediate_context->UpdateSubresource(color_filter_constant_buffer.Get(), 0, 0, &filter, 0, 0);
+		immediate_context->VSSetConstantBuffers(4, 1, color_filter_constant_buffer.GetAddressOf());
+		immediate_context->PSSetConstantBuffers(4, 1, color_filter_constant_buffer.GetAddressOf());
+
 		immediate_context->IASetInputLayout(sprite_input_layout.Get());
 		immediate_context->VSSetShader(sprite_vertex_shader.Get(), nullptr, 0);
 		immediate_context->PSSetShader(sprite_pixel_shader.Get(), nullptr, 0);
 		immediate_context->PSSetSamplers(0, 1, sampler_state.GetAddressOf());
 		immediate_context->PSSetShaderResources(1, 1, mask_texture.GetAddressOf());
-		dummy_sprite->render(immediate_context.Get(), 256, 128, SCREEN_WIDTH - 256 * 2, SCREEN_HEIGHT - 128 * 2);
+		dummy_sprite->render(immediate_context.Get(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	}
 
 #ifdef USE_IMGUI

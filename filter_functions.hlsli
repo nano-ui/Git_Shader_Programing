@@ -29,7 +29,7 @@ float3 RGB2HSV(float3 rgb)
         }
         else
         {
-            hsv.x = 60 * ((rgb.r - rgb.g) / delta) + 120;
+            hsv.x = 60 * ((rgb.r - rgb.g) / delta) + 240;
         }
         
         if(hsv.x<0)
@@ -62,7 +62,7 @@ float3 HSV2RGB(float3 hsv)
         float Huei = (int) (hsv.x / 60);
         float Huef = hsv.x / 60 - Huei;
         float p = Vmax * (1.0f - hsv.y);
-        float q = Vmin * (1.0f - hsv.y * Huef);
+        float q = Vmax * (1.0f - hsv.y * Huef);
         float t = Vmax * (1.0f - hsv.y * (1 - Huef));
         if(Huei == 0)
         {
