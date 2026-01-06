@@ -100,6 +100,16 @@ public:
 	point_lights point_light[8];
 	spot_lights spot_light[8];
 
+	struct color_filter
+	{
+		float hue_shift;	//РFН╩Т▓Ро
+		float saturation;	//Н╩УxТ▓Ро
+		float brightness;	//Ц╛УxТ▓Ро
+		float dummy;
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> color_filter_constant_buffer;
+	DirectX::XMFLOAT4 color_filter_parameter{ 0.0f,1.0f,1.0f,0.0f };
+
 	struct scroll_constants
 	{
 		DirectX::XMFLOAT2 scroll_direction;

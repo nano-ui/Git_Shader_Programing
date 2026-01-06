@@ -175,11 +175,16 @@ bool framework::initialize()
 			hr = device->CreateBuffer(&buffer_desc, nullptr, fog_constant_buffer.GetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
+		{
+			buffer_desc.ByteWidth = sizeof(color_filter);
+			hr = device->CreateBuffer(&buffer_desc, nullptr, color_filter_constant_buffer.GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		}
 	}
 	// 描画オブジェクトの読み込み
 	{
 		//dummy_static_mesh = std::make_unique<static_mesh>(device.Get(), L".\\resources\\ball\\ball.obj", true);
-		//dummy_sprite = std::make_unique<sprite>(device.Get(), L".\\resources\\chip_win.png");
+		dummy_sprite = std::make_unique<sprite>(device.Get(), L".\\resources\\chip_win.png");
 		dummy_static_meshs.push_back(std::make_unique<static_mesh>(device.Get(),
 			L".\\resources\\ball\\ball.obj", true));
 
@@ -276,16 +281,24 @@ bool framework::initialize()
 				"UVScroll_ps.cso",
 				sprite_pixel_shader.GetAddressOf());
 
+			//create_vs_from_cso(device.Get(),
+			//	"sprite_dissolve_vs.cso",
+			//	sprite_vertex_shader.GetAddressOf(),
+			//	sprite_input_layout.GetAddressOf(),
+			//	input_element_desc,
+			//	ARRAYSIZE(input_element_desc));
+			//create_ps_from_cso(device.Get(),
+			//	"sprite_dissolve_ps.cso",
+			//	sprite_pixel_shader.GetAddressOf());
 			create_vs_from_cso(device.Get(),
-				"sprite_dissolve_vs.cso",
+				"color_filter_vs.cso",
 				sprite_vertex_shader.GetAddressOf(),
 				sprite_input_layout.GetAddressOf(),
 				input_element_desc,
-				ARRAYSIZE(input_element_desc));
+				_countof(input_element_desc));
 			create_ps_from_cso(device.Get(),
-				"sprite_dissolve_ps.cso",
+				"color_filter_ps.cso",
 				sprite_pixel_shader.GetAddressOf());
-
 
 		}
 	}
@@ -402,6 +415,10 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	ImGui::ColorEdit3("fog_color", &fog_color.x);
 	ImGui::SliderFloat("fog_near", &fog_range.x, 0.1f, +100.0f);
 	ImGui::SliderFloat("fog_far", &fog_range.y, 0.1f, +100.0f);
+	ImGui::Separator();
+	ImGui::SliderFloat("hue_shift", &color_filter_parameter.x, 0.0f, +360.0f);
+	ImGui::SliderFloat("saturation", &color_filter_parameter.y, 0.0f, +2.0f);
+	ImGui::SliderFloat("brightness", &color_filter_parameter.z, 0.0f, +2.0f);
 
 
 	ImGui::End();
@@ -564,6 +581,14 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->UpdateSubresource(fog_constant_buffer.Get(), 0, 0, &fogs, 0, 0);
 		immediate_context->VSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
+
+		color_filter filter{};
+		filter.hue_shift = color_filter_parameter.x;
+		filter.saturation = color_filter_parameter.y;
+		filter.brightness = color_filter_parameter.z;
+		immediate_context->UpdateSubresource(color_filter_constant_buffer.Get(), 0, 0, &filter, 0, 0);
+		immediate_context->VSSetConstantBuffers(4, 1, color_filter_constant_buffer.GetAddressOf());
+		immediate_context->PSSetConstantBuffers(4, 1, color_filter_constant_buffer.GetAddressOf());
 	}
 
 	// static_mesh描画
@@ -582,9 +607,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	DirectX::XMMATRIX S, R, T;
 	DirectX::XMFLOAT4X4 world;
 	//モデルを大量に描画
-	for (int x = -10; x < 10; x++)
+	for (int x = -5; x < 5; x++)
 	{
-		for (int z = 0; z < 75; z++)
+		for (int z = 0; z < 50; z++)
 		{
 			S = DirectX::XMMatrixScaling(0.01f * scaling.x, 0.01f * scaling.y, 0.01f * scaling.z);
 			R = DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
