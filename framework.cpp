@@ -184,6 +184,11 @@ bool framework::initialize()
 			hr = device->CreateBuffer(&buffer_desc, nullptr, color_filter_constant_buffer.GetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
+		{
+			buffer_desc.ByteWidth = sizeof(shadowmap_constants);
+			hr = device->CreateBuffer(&buffer_desc, nullptr, shadowmap_constant_buffer.GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+		}
 	}
 
 	//ライトから見たシーンの深度描画用のバッファ生成
@@ -224,6 +229,23 @@ bool framework::initialize()
 			&shader_resource_view_desc,
 			shadowmap_shader_resource_view.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//サンプラーステートの生成
+		D3D11_SAMPLER_DESC sampler_desc{};
+		sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampler_desc.MipLODBias = 0;
+		sampler_desc.MaxAnisotropy = 16;
+		sampler_desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+		sampler_desc.BorderColor[0] = FLT_MAX;
+		sampler_desc.BorderColor[1] = FLT_MAX;
+		sampler_desc.BorderColor[2] = FLT_MAX;
+		sampler_desc.BorderColor[3] = FLT_MAX;
+		sampler_desc.MinLOD = 0;
+		sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
+		hr = device->CreateSamplerState(&sampler_desc, shadowmap_sampler_state.GetAddressOf());
 	}
 
 	//シーン描画用のバッファ生成
@@ -497,6 +519,8 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	ImGui::SliderFloat("saturation", &color_filter_parameter.y, 0.0f, +2.0f);
 	ImGui::SliderFloat("brightness", &color_filter_parameter.z, 0.0f, +2.0f);
 	ImGui::Separator();
+	ImGui::ColorEdit3("shadow_color", &shadow_color.x);
+	ImGui::SliderFloat("shadow_bias", &shadow_bias, 0.0f, +0.1f);
 	if (ImGui::TreeNode("texture"))
 	{
 		ImGui::Text("scene_texture");
@@ -563,6 +587,7 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 				scene.options.z = timer;
 				scene.options.w = flag;
 				DirectX::XMStoreFloat4x4(&scene.view_projection, V * P);
+				light_view_projection = scene.view_projection;
 				immediate_context->UpdateSubresource(scene_constant_buffer.Get(), 0, 0, &scene, 0, 0);
 				immediate_context->VSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
 				immediate_context->PSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
@@ -741,6 +766,16 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->UpdateSubresource(fog_constant_buffer.Get(), 0, 0, &fogs, 0, 0);
 		immediate_context->VSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
+
+		shadowmap_constants shadowmap{};
+		shadowmap.light_view_projection = light_view_projection;
+		shadowmap.shadow_color = shadow_color;
+		shadowmap.shadow_bias = shadow_bias;
+		immediate_context->UpdateSubresource(shadowmap_constant_buffer.Get(), 0, 0, &shadowmap, 0, 0);
+		immediate_context->VSSetConstantBuffers(6, 1, shadowmap_constant_buffer.GetAddressOf());
+		immediate_context->PSSetConstantBuffers(6, 1, shadowmap_constant_buffer.GetAddressOf());
+		immediate_context->PSSetShaderResources(4, 1, shadowmap_shader_resource_view.GetAddressOf());
+		immediate_context->PSSetSamplers(4, 1, shadowmap_sampler_state.GetAddressOf());
 	}
 
 	// static_mesh描画
@@ -817,6 +852,10 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->PSSetShaderResources(1, 1, mask_texture.GetAddressOf());
 		dummy_sprite->render(immediate_context.Get(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	}
+
+	//不要になったシャドウマップの設定を外しておく
+	ID3D11ShaderResourceView* clear_shader_resource_view[]{ nullptr };
+	immediate_context->PSSetShaderResources(4, 1, clear_shader_resource_view);
 
 #ifdef USE_IMGUI
 	ImGui::Render();

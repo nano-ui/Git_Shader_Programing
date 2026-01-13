@@ -25,5 +25,16 @@ float2 texcoord : TEXCOORD)
     vont.binormal = normalize(cross(vont.binormal, vont.tangent));
     vont.world_position = world_position;
     vont.texcoord = texcoord; //UV座標をそのままピクセルシェーダーに渡す
+    
+    //シャドウマップ用のパラメータ計算
+    {
+        //ライトから見たNDC座標を算出
+        float4 wvpPos = mul(position, mul(world, light_view_projection));
+        //NDC座標からUV座標を算出
+        wvpPos /= wvpPos.w;
+        wvpPos.y = -wvpPos.y;
+        wvpPos.xy = 0.5f * wvpPos.xy + 0.5f;
+        vont.shadow_texcoord = wvpPos.xyz;
+    }
     return vont;
 }

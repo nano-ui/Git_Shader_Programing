@@ -11,6 +11,7 @@ struct VS_OUT
     float3 binormal : BINORMAL;//従法線ベクトル
     float3 normal : NORMAL; //法線ベクトル
     float2 texcoord : TEXCOORD; //頂点のUV座標
+    float3 shadow_texcoord : TEXCOORD1;//シャドウマップ用のパラメータ変数
 };
 
 //各オブジェクト固有の情報をまとめた定数バッファ
@@ -52,4 +53,11 @@ cbuffer FOG_CONSTANT_BUFFER : register(b5)
 {
     float4 fog_color;//霧の色
     float4 fog_range;//フォグの距離
+}
+
+cbuffer SHADOWMAP_CONSTANT_BUFFER : register(b6)
+{
+    row_major float4x4 light_view_projection;
+    float3 shadow_color;
+    float shadow_bias;
 }
