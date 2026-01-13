@@ -3,6 +3,10 @@
 #include "shader.h"
 #include "texture.h"
 
+CONST LONG  SHADOWMAP_WIDTH{ 1024 };
+CONST LONG  SHADOWMAP_HIGHT{ 1024 };
+CONST float SHADOWMAP_DRWRCT{ 30 };
+
 framework::framework(HWND hwnd) : hwnd(hwnd)
 {
 }
@@ -182,6 +186,46 @@ bool framework::initialize()
 		}
 	}
 
+	//ライトから見たシーンの深度描画用のバッファ生成
+	{
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_buffer{};
+		D3D11_TEXTURE2D_DESC texture2d_desc{};
+		texture2d_desc.Width = SHADOWMAP_WIDTH;
+		texture2d_desc.Height = SHADOWMAP_HIGHT;
+		texture2d_desc.MipLevels = 1;
+		texture2d_desc.ArraySize = 1;
+		texture2d_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+		texture2d_desc.SampleDesc.Count = 1;
+		texture2d_desc.SampleDesc.Quality = 0;
+		texture2d_desc.Usage = D3D11_USAGE_DEFAULT;
+		texture2d_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+		texture2d_desc.CPUAccessFlags = 0;
+		texture2d_desc.MiscFlags = 0;
+		hr = device->CreateTexture2D(&texture2d_desc, NULL, depth_buffer.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//深度ステンシルビュー生成
+		D3D11_DEPTH_STENCIL_VIEW_DESC depth_stencil_view_desc{};
+		depth_stencil_view_desc.Format = DXGI_FORMAT_D32_FLOAT;
+		depth_stencil_view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		depth_stencil_view_desc.Texture2D.MipSlice = 0;
+		hr = device->CreateDepthStencilView(depth_buffer.Get(),
+			&depth_stencil_view_desc,
+			shadowmap_depth_stencil_view.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//シェーダーリソースビュー生成
+		D3D11_SHADER_RESOURCE_VIEW_DESC shader_resource_view_desc{};
+		shader_resource_view_desc.Format = DXGI_FORMAT_R32_FLOAT;
+		shader_resource_view_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		shader_resource_view_desc.Texture2D.MostDetailedMip = 0;
+		shader_resource_view_desc.Texture2D.MipLevels = 1;
+		hr = device->CreateShaderResourceView(depth_buffer.Get(),
+			&shader_resource_view_desc,
+			shadowmap_shader_resource_view.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+	}
+
 	//シーン描画用のバッファ生成
 	{
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> color_buffer{};
@@ -280,7 +324,11 @@ bool framework::initialize()
 				"phong_shader_ps.cso",
 				mesh_pixel_shader.GetAddressOf());
 
-
+			//シャドウマップ生成用シェーダー
+			create_vs_from_cso(device.Get(), "shadowmap_caster_vs.cso",
+				shadowmap_caster_vertex_shader.GetAddressOf(),
+				shadowmap_caster_input_layout.GetAddressOf(),
+				input_element_desc, ARRAYSIZE(input_element_desc));
 		}
 		// sprite用デフォルト描画シェーダー
 		{
@@ -453,6 +501,8 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 	{
 		ImGui::Text("scene_texture");
 		ImGui::Image(scene_shader_resource_view.Get(), { 256,144 }, { 0,0 }, { 1,1 }, { 1,1,1,1 });
+		ImGui::Text("shadow_map");
+		ImGui::Image(shadowmap_shader_resource_view.Get(), { 256,256 }, { 0,0 }, { 1,1 }, { 1,1,1,1 });
 		ImGui::TreePop();
 	}
 
@@ -463,6 +513,76 @@ void framework::update(float elapsed_time/*Elapsed seconds from last frame*/)
 void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 {
 	HRESULT hr{ S_OK };
+
+	//シャドウマップ生成処理
+	{
+		//シャドウマップ用の深度バッファに設定
+		immediate_context->ClearDepthStencilView(shadowmap_depth_stencil_view.Get(), D3D11_CLEAR_DEPTH |
+			D3D11_CLEAR_STENCIL, 1.0f, 0);
+		immediate_context->OMSetRenderTargets(0, nullptr, shadowmap_depth_stencil_view.Get());
+		//ビューポートの設定
+		D3D11_VIEWPORT viewport{};
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = static_cast<float>(SHADOWMAP_WIDTH);
+		viewport.Height = static_cast<float>(SHADOWMAP_HIGHT);
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		immediate_context->RSSetViewports(1, &viewport);
+		//ブレンドステートの設定
+		immediate_context->OMSetBlendState(blend_state.Get(), nullptr, 0xFFFFFFFF);
+		//深度ステンシルステートの設定
+		immediate_context->OMSetDepthStencilState(depth_stencil_state.Get(), 0);
+		//ラスタライザステートの設定
+		immediate_context->RSSetState(rasterizer_state.Get());
+		//シェーダー設定
+		immediate_context->IASetInputLayout(shadowmap_caster_input_layout.Get());
+		immediate_context->VSSetShader(shadowmap_caster_vertex_shader.Get(), nullptr, 0);
+		immediate_context->PSSetShader(nullptr, nullptr, 0);
+
+		DirectX::XMMATRIX S, R, T;
+		DirectX::XMFLOAT4X4 world;
+		{
+			//ライトの位置から見た視線行列を生成
+			DirectX::XMVECTOR LightPosition = DirectX::XMLoadFloat4(&directional_light_direction);
+			LightPosition = DirectX::XMVectorScale(LightPosition, -50);
+			DirectX::XMMATRIX V = DirectX::XMMatrixLookAtLH(LightPosition,
+				DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+				DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+
+			//シャドウマップに描画したい範囲の射影行列を生成
+			DirectX::XMMATRIX P = DirectX::XMMatrixOrthographicLH(SHADOWMAP_DRWRCT, SHADOWMAP_DRWRCT,
+				0.1f, 200.0f);
+
+			//定数バッファの更新
+			{
+				//0番はメッシュ側で更新
+				scene_constants scene;
+				scene.options.x = cursor_position.x;
+				scene.options.y = cursor_position.y;
+				scene.options.z = timer;
+				scene.options.w = flag;
+				DirectX::XMStoreFloat4x4(&scene.view_projection, V * P);
+				immediate_context->UpdateSubresource(scene_constant_buffer.Get(), 0, 0, &scene, 0, 0);
+				immediate_context->VSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
+				immediate_context->PSSetConstantBuffers(1, 1, scene_constant_buffer.GetAddressOf());
+			}
+			//大量のモデルを表示
+			for (int x = -10; x < 10; x++)
+			{
+				for (int z = 0; z < 75; z++)
+				{
+					S = DirectX::XMMatrixScaling(0.01f * scaling.x, 0.01f * scaling.y, 0.01f * scaling.z);
+					R = DirectX::XMMatrixRotationRollPitchYaw(rotation.x, rotation.y, rotation.z);
+					T = DirectX::XMMatrixTranslation(translation.x + (static_cast<float>(x) * 3),
+						translation.y,
+						translation.z + (static_cast<float>(z) * 3));
+					DirectX::XMStoreFloat4x4(&world, S * R * T);
+					dummy_static_meshs[0]->render(immediate_context.Get(), world, material_color);
+				}
+			}
+		}
+	}
 
 	// レンダーターゲット等の設定とクリア
 	FLOAT color[]{ 0.2f, 0.2f, 0.2f, 1.0f };

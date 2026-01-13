@@ -303,5 +303,10 @@ private:
 	D3D11_TEXTURE2D_DESC ramp_texture2dDesc;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ramp_texture;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> ramp_sampler_state;
+
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> shadowmap_depth_stencil_view;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shadowmap_shader_resource_view;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> shadowmap_caster_vertex_shader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> shadowmap_caster_input_layout;
 };
 
