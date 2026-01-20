@@ -180,6 +180,11 @@ bool framework::initialize()
 			hr = device->CreateBuffer(&buffer_desc, nullptr, color_filter_constant_buffer.GetAddressOf());
 			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
 		}
+		{
+			buffer_desc.ByteWidth = sizeof(skymap_constants);
+			hr = device->CreateBuffer(&buffer_desc, nullptr, skymap_constant_buffer.GetAddressOf());
+			_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));	
+		}
 	}
 
 	//シーン描画用のバッファ生成
@@ -242,6 +247,20 @@ bool framework::initialize()
 		sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 		hr = device->CreateSamplerState(&sampler_desc, ramp_sampler_state.GetAddressOf());
 		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//スカイマップ用に深度値を書き込まない深度ステンシルステート生成
+		D3D11_DEPTH_STENCIL_DESC depth_stencil_desc{};
+		depth_stencil_desc.DepthEnable = TRUE;
+		depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depth_stencil_desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		hr = device->CreateDepthStencilState(&depth_stencil_desc,
+			skymap_depth_stencile_state.GetAddressOf());
+		_ASSERT_EXPR(SUCCEEDED(hr), hr_trace(hr));
+
+		//スカイマップ用のテクスチャ及びスプライトの準備
+		load_texture_from_file(device.Get(), L".\\resources\\skybox/earth.jpg",
+			skymap_shader_resourece_view.GetAddressOf(), &skymap_texture2d_desc);
+		skymap_sprite = std::make_unique<sprite>(device.Get(), skymap_shader_resourece_view);
 	}
 	// シェーダーの読み込み
 	{
@@ -328,6 +347,18 @@ bool framework::initialize()
 			create_ps_from_cso(device.Get(),
 				"color_filter_ps.cso",
 				sprite_pixel_shader.GetAddressOf());
+
+			create_vs_from_cso(device.Get(),
+				"skymap_vs.cso",
+				skymap_vertex_shader.GetAddressOf(),
+				skymap_input_layout.GetAddressOf(),
+				input_element_desc,
+				_countof(input_element_desc));
+			create_ps_from_cso(
+				device.Get(),
+				"skymap_ps.cso",
+				skymap_pixel_shader.GetAddressOf()
+			);
 
 		}
 	}
@@ -621,6 +652,26 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 		immediate_context->UpdateSubresource(fog_constant_buffer.Get(), 0, 0, &fogs, 0, 0);
 		immediate_context->VSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
 		immediate_context->PSSetConstantBuffers(5, 1, fog_constant_buffer.GetAddressOf());
+
+		skymap_constants skymap{};
+		DirectX::XMStoreFloat4x4(&skymap.inverse_view_projection, DirectX::XMMatrixInverse(nullptr, V* P));
+		immediate_context->UpdateSubresource(skymap_constant_buffer.Get(), 0, 0, &skymap, 0, 0);
+		immediate_context->VSSetConstantBuffers(7, 1, skymap_constant_buffer.GetAddressOf());
+		immediate_context->PSSetConstantBuffers(7, 1, skymap_constant_buffer.GetAddressOf());
+	}
+
+	//空の描画
+	if (skymap_sprite)
+	{
+		immediate_context->IASetInputLayout(skymap_input_layout.Get());
+		immediate_context->VSSetShader(skymap_vertex_shader.Get(), nullptr, 0);
+		immediate_context->PSSetShader(skymap_pixel_shader.Get(), nullptr, 0);
+		immediate_context->PSSetSamplers(0, 1, sampler_state.GetAddressOf());
+		immediate_context->OMSetDepthStencilState(skymap_depth_stencile_state.Get(), 0);
+
+		skymap_sprite->render(immediate_context.Get(), 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+		immediate_context->OMSetDepthStencilState(depth_stencil_state.Get(), 0);
 	}
 
 	// static_mesh描画
