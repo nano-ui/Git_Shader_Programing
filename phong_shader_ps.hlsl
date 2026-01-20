@@ -7,6 +7,8 @@ SamplerState color_sampler_state : register(s0);
 Texture2D normal_map : register(t1);
 Texture2D shadow_map : register(t4);
 SamplerState shadow_sampler_state : register(s4);
+Texture2D sky_map : register(t5);
+SamplerState sky_sampler_state : register(s5);
 
 float4 main(VS_OUT pin) : SV_TARGET
 {
@@ -81,6 +83,13 @@ float4 main(VS_OUT pin) : SV_TARGET
     //色の合成
     float4 color = float4(diffuse_color.rgb * (ambient + directional_diffuse + point_diffuse + spot_diffuse), diffuse_color.a);
     color.rgb += directional_specular + spot_specular + point_specular;
+    
+    //スカイボックスを環境マッピングのように適応
+    {
+        float4 skybox_color = SampleSkybox(sky_map, sky_sampler_state, reflect(E, N));
+        color.rgb = lerp(color.rgb, skybox_color.rgb, environment_value);
+    }
+    
     color.rgb += rim_color;
     color = CalFog(color, fog_color, fog_range.xy, length(pin.world_position.xyz - camera_position.xyz));
     
