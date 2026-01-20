@@ -348,7 +348,8 @@ bool framework::initialize()
 				"color_filter_ps.cso",
 				sprite_pixel_shader.GetAddressOf());
 
-			create_vs_from_cso(device.Get(),
+			create_vs_from_cso(
+				device.Get(),
 				"skymap_vs.cso",
 				skymap_vertex_shader.GetAddressOf(),
 				skymap_input_layout.GetAddressOf(),
