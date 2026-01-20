@@ -5,6 +5,7 @@ struct VS_OUT
     float4 position : SV_POSITION;
     float4 color : COLOR;
     float2 texcoord : TEXCOORD;
+    float4 world_position : WORLD_POSITION;
 };
 
 cbuffer SCENE_CONSTANT_BUFFER : register(b1)

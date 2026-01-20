@@ -8,5 +8,10 @@ VS_OUT main(float4 positon:POSITION,float4 color:COLOR,float2 texcoord:TEXCOORD)
     
     vout.texcoord = texcoord;
     
+    //positionにわたってくる座標はNDC空間の座標なので、
+    //視線*投影行列の逆行列を使ってワールド空間の座標に変換する
+    positon = mul(positon, inverse_view_projection);
+    vout.world_position = positon / positon.w;
+    
     return vout;
 }
