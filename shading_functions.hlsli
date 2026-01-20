@@ -184,7 +184,7 @@ float4 SampleSkybox(Texture2D tex,SamplerState samp,float3 direction)
 {
     static const float P1 = 3.14159265f;
     
-    float latitude = (1.0f / (2.0f * P1)) * atan2(direction.z, direction.x) * 0.5f;
+    float latitude = (1.0f / (2.0f * P1)) * atan2(direction.z, direction.x) + 0.5f;
     float longtude = (1.0f / P1) * atan2(direction.y, length(direction.xz)) + 0.5f;
     return tex.Sample(samp, float2(1.0f - saturate(latitude), 1.0f - saturate(longtude)));
 }

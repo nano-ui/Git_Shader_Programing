@@ -173,6 +173,12 @@
     <FxCompile Include="shadowmap_caster_vs.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="skymap_ps.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="skymap_vs.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="sprite.hlsli">
@@ -209,6 +215,9 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="filter_functions.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="skymap.hlsli">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

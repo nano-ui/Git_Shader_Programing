@@ -836,6 +836,9 @@ void framework::render(float elapsed_time/*Elapsed seconds from last frame*/)
 	immediate_context->VSSetShader(mesh_vertex_shader.Get(), nullptr, 0);
 	immediate_context->PSSetShader(mesh_pixel_shader.Get(), nullptr, 0);
 	immediate_context->PSSetSamplers(0, 1, sampler_state.GetAddressOf());
+	immediate_context->PSSetSamplers(4, 1, shadowmap_sampler_state.GetAddressOf());
+	immediate_context->PSSetShaderResources(5, 1, skymap_shader_resourece_view.GetAddressOf());
+	immediate_context->PSSetSamplers(5, 1, sampler_state.GetAddressOf());
 	
 
 	//t0,t1‚Ístatic_mesh‚ÌrenderŠÖ”‘¤‚Åİ’è‚³‚ê‚é‚Ì‚Åt2‚©‚çİ’è‚·‚é
