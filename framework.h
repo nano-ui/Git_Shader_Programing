@@ -192,6 +192,19 @@ public:
 	float shadow_bias{ 0.008f };
 	DirectX::XMFLOAT3 shadow_color{ 0.3f,0.3f,0.3f };
 
+	struct skymap_constants
+	{
+		DirectX::XMFLOAT4X4 inverse_view_projection;
+	};
+	Microsoft::WRL::ComPtr<ID3D11Buffer> skymap_constant_buffer;
+	Microsoft::WRL::ComPtr<ID3D11VertexShader> skymap_vertex_shader;
+	Microsoft::WRL::ComPtr<ID3D11InputLayout> skymap_input_layout;
+	Microsoft::WRL::ComPtr<ID3D11PixelShader> skymap_pixel_shader;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> skymap_depth_stencile_state;
+	D3D11_TEXTURE2D_DESC skymap_texture2d_desc;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> skymap_shader_resourece_view;
+	std::unique_ptr<sprite> skymap_sprite;
+
 
 	framework(HWND hwnd);
 	~framework();
